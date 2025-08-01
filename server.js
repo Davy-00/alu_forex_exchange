@@ -1,112 +1,94 @@
 const express = require('express');
 const cors = require('cors');
-const helmet = require('helmet');
-const { RateLimiterMemory } = require('rate-limiter-flexible');
-const NodeCache = require('node-cache');
 const path = require('path');
-require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Security middleware
-app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-            imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'", "https://api.exchangerate-api.com"]
-        }
-    }
-}));
-
-// CORS configuration
+// Allow requests from GitHub Pages
 app.use(cors({
-    origin: process.env.NODE_ENV === 'production' ? false : ['http://localhost:8080', 'http://127.0.0.1:8080'],
-    credentials: true
+    origin: ['https://davy-00.github.io', 'http://localhost:8080'],
+    methods: ['GET', 'POST', 'OPTIONS']
 }));
 
-// Rate limiting
-const rateLimiter = new RateLimiterMemory({
-    keyPrefix: 'forex_api',
-    points: 100, // Number of requests
-    duration: 60, // Per 60 seconds
-});
-
-// Cache for API responses (5 minutes TTL)
-const cache = new NodeCache({ stdTTL: 300 });
-
-// Middleware
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static('.'));
 
-// Rate limiting middleware
-app.use(async (req, res, next) => {
+// Simple cache for exchange rates
+const cache = new Map();
+
+// Supported currencies
+const currencies = {
+    'USD': 'US Dollar', 'EUR': 'Euro', 'GBP': 'British Pound',
+    'JPY': 'Japanese Yen', 'CAD': 'Canadian Dollar', 'AUD': 'Australian Dollar',
+    'CHF': 'Swiss Franc', 'CNY': 'Chinese Yuan', 'INR': 'Indian Rupee', 'KRW': 'South Korean Won'
+};
+
+// Currency conversion API
+app.post('/api/convert', async (req, res) => {
     try {
-        await rateLimiter.consume(req.ip);
-        next();
-    } catch (rejRes) {
-        res.status(429).json({
-            error: 'Too many requests',
-            message: 'Rate limit exceeded. Please try again later.',
-            retryAfter: Math.round(rejRes.msBeforeNext / 1000)
+        const { from, to, amount } = req.body;
+        
+        if (!from || !to || !amount) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        const fromCur = from.toUpperCase();
+        const toCur = to.toUpperCase();
+        const num = parseFloat(amount);
+
+        if (isNaN(num) || num < 0) {
+            return res.status(400).json({ error: 'Invalid amount' });
+        }
+
+        if (!currencies[fromCur] || !currencies[toCur]) {
+            return res.status(400).json({ error: 'Unsupported currency' });
+        }
+
+        // Check cache
+        const cacheKey = `${fromCur}_rates`;
+        let rates = cache.get(cacheKey);
+        
+        if (!rates) {
+            const response = await fetch(`https://api.exchangerate-api.com/v4/latest/${fromCur}`);
+            const data = await response.json();
+            rates = data.rates;
+            cache.set(cacheKey, rates);
+            setTimeout(() => cache.delete(cacheKey), 5 * 60 * 1000); // 5 min cache
+        }
+
+        const rate = rates[toCur];
+        if (!rate) {
+            return res.status(400).json({ error: 'Exchange rate not available' });
+        }
+
+        const converted = num * rate;
+
+        res.json({
+            from: fromCur,
+            to: toCur,
+            amount: num,
+            convertedAmount: parseFloat(converted.toFixed(2)),
+            exchangeRate: parseFloat(rate.toFixed(4)),
+            timestamp: new Date().toISOString()
         });
+
+    } catch (error) {
+        console.error('Conversion error:', error);
+        res.status(500).json({ error: 'Server error' });
     }
 });
 
-// API endpoints
-const apiRoutes = require('./routes/api');
-app.use('/api', apiRoutes);
+// Health check
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
-// Serve the main HTML file
+// Serve index.html for root
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-    res.json({
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        server: process.env.SERVER_NAME || 'unknown'
-    });
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error('Error:', err.stack);
-    res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Something went wrong on our end. Please try again later.'
-    });
-});
-
-// 404 handler
-app.use('*', (req, res) => {
-    res.status(404).json({
-        error: 'Not Found',
-        message: 'The requested resource was not found.'
-    });
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-    console.log('SIGTERM received. Shutting down gracefully...');
-    process.exit(0);
-});
-
-process.on('SIGINT', () => {
-    console.log('SIGINT received. Shutting down gracefully...');
-    process.exit(0);
-});
-
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Forex Exchange Server running on port ${PORT}`);
-    console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🌐 Access URL: http://localhost:${PORT}`);
-});
-
-module.exports = app;

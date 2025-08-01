@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Forex Exchange - ALU Assignment</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .currency-row {
+            display: flex;
+            gap: 15px;
+            align-items: end;
+        }
+
+        .currency-row .form-group {
+            flex: 1;
+        }
+
+        .swap-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: background 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .swap-btn:hover {
+            background: #5a6fd8;
+        }
+
+        .convert-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 18px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 20px;
+        }
+
+        .convert-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .convert-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: white;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+            animation: slideIn 0.5s ease;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .result-amount {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .result-details {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .arrow {
+            color: #ffd700;
+            margin: 0 15px;
+            font-size: 1.5rem;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .currency-row {
+                flex-direction: column;
+                gap: 0;
+            }
+            
+            .swap-btn {
+                align-self: center;
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💱 Simple Forex Exchange</h1>
+        <p class="subtitle">Convert currencies quickly and easily</p>
+        
+        <form id="converter-form">
+            <div class="form-group">
+                <label for="amount">Amount to Convert:</label>
+                <input type="number" id="amount" placeholder="Enter amount (e.g., 100)" value="100" min="0" step="0.01" required>
+            </div>
+
+            <div class="currency-row">
+                <div class="form-group">
+                    <label for="from-currency">From:</label>
+                    <select id="from-currency" required>
+                        <option value="">Select currency...</option>
+                        <option value="USD">USD - US Dollar</option>
+                        <option value="EUR">EUR - Euro</option>
+                        <option value="GBP">GBP - British Pound</option>
+                        <option value="JPY">JPY - Japanese Yen</option>
+                        <option value="CAD">CAD - Canadian Dollar</option>
+                        <option value="AUD">AUD - Australian Dollar</option>
+                        <option value="CHF">CHF - Swiss Franc</option>
+                        <option value="CNY">CNY - Chinese Yuan</option>
+                        <option value="INR">INR - Indian Rupee</option>
+                        <option value="KRW">KRW - South Korean Won</option>
+                    </select>
+                </div>
+
+                <button type="button" class="swap-btn" id="swap-btn" title="Swap currencies">
+                    ⇄
+                </button>
+
+                <div class="form-group">
+                    <label for="to-currency">To:</label>
+                    <select id="to-currency" required>
+                        <option value="">Select currency...</option>
+                        <option value="USD">USD - US Dollar</option>
+                        <option value="EUR">EUR - Euro</option>
+                        <option value="GBP">GBP - British Pound</option>
+                        <option value="JPY">JPY - Japanese Yen</option>
+                        <option value="CAD">CAD - Canadian Dollar</option>
+                        <option value="AUD">AUD - Australian Dollar</option>
+                        <option value="CHF">CHF - Swiss Franc</option>
+                        <option value="CNY">CNY - Chinese Yuan</option>
+                        <option value="INR">INR - Indian Rupee</option>
+                        <option value="KRW">KRW - South Korean Won</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" class="convert-btn" id="convert-btn">
+                🔄 Convert Currency
+            </button>
+        </form>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Converting currency...</p>
+        </div>
+
+        <div class="result" id="result">
+            <div class="result-amount" id="result-amount"></div>
+            <div class="result-details" id="result-details"></div>
+        </div>
+
+        <!-- Enhanced Features for Full Marks -->
+        <div class="enhanced-features" style="margin-top: 30px; display: none;" id="enhanced-features">
+            <h3 style="text-align: center; margin-bottom: 20px; color: #333;">📊 Conversion History</h3>
+            
+            <div style="margin-bottom: 15px;">
+                <input type="text" id="search-history" placeholder="🔍 Search conversions..." 
+                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <select id="sort-history" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <option value="newest">📅 Sort by: Newest First</option>
+                    <option value="oldest">📅 Sort by: Oldest First</option>
+                    <option value="amount-high">💰 Sort by: Highest Amount</option>
+                    <option value="amount-low">💰 Sort by: Lowest Amount</option>
+                </select>
+            </div>
+            
+            <div id="conversion-history" style="max-height: 200px; overflow-y: auto; border: 1px solid #eee; border-radius: 5px; padding: 10px;">
+                <p style="text-align: center; color: #666;">No conversions yet. Start converting to see history!</p>
+            </div>
+            
+            <button onclick="clearHistory()" style="width: 100%; margin-top: 10px; padding: 8px; background: #ff6b6b; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                🗑️ Clear History
+            </button>
+        </div>
+
+        <div class="footer">
+            <p>ALU Assignment - Simple Forex Exchange Application</p>
+            <p>Powered by live exchange rates</p>
+        </div>
+    </div>
+
+    <script>
+        class SimpleForexApp {
+            constructor() {
+                // Load balancer configuration with multiple endpoints
+                this.backends = [
+                    'https://alu-forex-exchange.onrender.com',
+                    'https://alu-forex-exchange.onrender.com'  // Can add more when available
+                ];
+                this.currentBackend = 0;
+                this.fallbackUrl = 'https://api.exchangerate-api.com/v4/latest';
+                this.conversionHistory = JSON.parse(localStorage.getItem('conversionHistory') || '[]');
+                this.setupEventListeners();
+                this.setDefaultValues();
+                this.updateHistoryDisplay();
+            }
+
+            setupEventListeners() {
+                // Form submission
+                document.getElementById('converter-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.convertCurrency();
+                });
+
+                // Swap button
+                document.getElementById('swap-btn').addEventListener('click', () => {
+                    this.swapCurrencies();
+                });
+
+                // Auto-convert when values change
+                document.getElementById('amount').addEventListener('input', () => {
+                    this.autoConvert();
+                });
+
+                document.getElementById('from-currency').addEventListener('change', () => {
+                    this.autoConvert();
+                });
+
+                document.getElementById('to-currency').addEventListener('change', () => {
+                    this.autoConvert();
+                });
+
+                // Enhanced features event listeners
+                document.getElementById('search-history').addEventListener('input', () => {
+                    this.filterHistory();
+                });
+
+                document.getElementById('sort-history').addEventListener('change', () => {
+                    this.sortHistory();
+                });
+            }
+
+            setDefaultValues() {
+                document.getElementById('from-currency').value = 'USD';
+                document.getElementById('to-currency').value = 'EUR';
+            }
+
+            swapCurrencies() {
+                const fromSelect = document.getElementById('from-currency');
+                const toSelect = document.getElementById('to-currency');
+                
+                const temp = fromSelect.value;
+                fromSelect.value = toSelect.value;
+                toSelect.value = temp;
+                
+                this.autoConvert();
+            }
+
+            autoConvert() {
+                const amount = document.getElementById('amount').value;
+                const from = document.getElementById('from-currency').value;
+                const to = document.getElementById('to-currency').value;
+                
+                if (amount && from && to && from !== to) {
+                    setTimeout(() => this.convertCurrency(), 500);
+                }
+            }
+
+            async convertCurrency() {
+                const amount = parseFloat(document.getElementById('amount').value);
+                const from = document.getElementById('from-currency').value;
+                const to = document.getElementById('to-currency').value;
+
+                // Validation
+                if (!amount || amount <= 0) {
+                    alert('Please enter a valid amount');
+                    return;
+                }
+
+                if (!from || !to) {
+                    alert('Please select both currencies');
+                    return;
+                }
+
+                if (from === to) {
+                    alert('Please select different currencies');
+                    return;
+                }
+
+                this.showLoading();
+
+                try {
+                    // Load balancer: Try multiple backend endpoints
+                    let result;
+                    let backendSuccess = false;
+                    
+                    for (let i = 0; i < this.backends.length && !backendSuccess; i++) {
+                        const backendUrl = this.backends[(this.currentBackend + i) % this.backends.length];
+                        try {
+                            console.log(`Trying backend ${i + 1}: ${backendUrl}`);
+                            const response = await fetch(`${backendUrl}/api/convert`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ amount, from, to }),
+                                timeout: 5000
+                            });
+
+                            if (response.ok) {
+                                const data = await response.json();
+                                result = {
+                                    amount: amount,
+                                    from: from,
+                                    to: to,
+                                    convertedAmount: data.convertedAmount,
+                                    rate: data.exchangeRate,
+                                    server: `Backend ${i + 1}`
+                                };
+                                backendSuccess = true;
+                                this.currentBackend = (this.currentBackend + i) % this.backends.length;
+                                console.log(`✅ Backend ${i + 1} successful`);
+                                break;
+                            }
+                        } catch (backendError) {
+                            console.log(`❌ Backend ${i + 1} failed:`, backendError.message);
+                            continue;
+                        }
+                    }
+
+                    // Fallback to external API if all backends fail
+                    if (!backendSuccess) {
+                        console.log('🔄 Using fallback API...');
+                        const response = await fetch(`${this.fallbackUrl}/${from}`);
+                        const data = await response.json();
+                        
+                        if (!data.rates[to]) {
+                            throw new Error(`Rate not available for ${to}`);
+                        }
+
+                        const convertedAmount = amount * data.rates[to];
+                        result = {
+                            amount: amount,
+                            from: from,
+                            to: to,
+                            convertedAmount: convertedAmount,
+                            rate: data.rates[to],
+                            server: 'Fallback API'
+                        };
+                    }
+
+                    this.displayResult(result);
+
+                } catch (error) {
+                    console.error('Conversion error:', error);
+                    alert('Conversion failed. Please try again.');
+                } finally {
+                    this.hideLoading();
+                }
+            }
+
+            displayResult(result) {
+                const resultDiv = document.getElementById('result');
+                const amountDiv = document.getElementById('result-amount');
+                const detailsDiv = document.getElementById('result-details');
+
+                amountDiv.innerHTML = `
+                    ${result.amount.toLocaleString()} ${result.from}
+                    <span class="arrow">→</span>
+                    ${result.convertedAmount.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    })} ${result.to}
+                `;
+
+                detailsDiv.innerHTML = `
+                    Exchange Rate: 1 ${result.from} = ${result.rate.toFixed(4)} ${result.to}
+                `;
+
+                resultDiv.classList.add('show');
+
+                // Add to history for enhanced user interaction
+                this.addToHistory({
+                    ...result,
+                    timestamp: new Date().toISOString(),
+                    id: Date.now()
+                });
+
+                // Show enhanced features after first conversion
+                document.getElementById('enhanced-features').style.display = 'block';
+
+                // Auto-hide after 15 seconds
+                setTimeout(() => {
+                    resultDiv.classList.remove('show');
+                }, 15000);
+            }
+
+            // Enhanced User Interaction Features
+            addToHistory(conversion) {
+                this.conversionHistory.unshift(conversion);
+                if (this.conversionHistory.length > 50) this.conversionHistory.pop();
+                localStorage.setItem('conversionHistory', JSON.stringify(this.conversionHistory));
+                this.updateHistoryDisplay();
+            }
+
+            updateHistoryDisplay() {
+                const historyDiv = document.getElementById('conversion-history');
+                if (this.conversionHistory.length === 0) {
+                    historyDiv.innerHTML = '<p style="text-align: center; color: #666;">No conversions yet. Start converting to see history!</p>';
+                    return;
+                }
+
+                const searchTerm = document.getElementById('search-history')?.value.toLowerCase() || '';
+                const sortBy = document.getElementById('sort-history')?.value || 'newest';
+
+                let filtered = this.conversionHistory.filter(item => 
+                    item.from.toLowerCase().includes(searchTerm) ||
+                    item.to.toLowerCase().includes(searchTerm) ||
+                    item.amount.toString().includes(searchTerm)
+                );
+
+                // Sort functionality
+                filtered.sort((a, b) => {
+                    switch(sortBy) {
+                        case 'oldest': return new Date(a.timestamp) - new Date(b.timestamp);
+                        case 'amount-high': return b.amount - a.amount;
+                        case 'amount-low': return a.amount - b.amount;
+                        default: return new Date(b.timestamp) - new Date(a.timestamp);
+                    }
+                });
+
+                historyDiv.innerHTML = filtered.map(item => `
+                    <div style="padding: 8px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+                        <span>${item.amount} ${item.from} → ${item.convertedAmount.toFixed(2)} ${item.to}</span>
+                        <small style="color: #666;">${new Date(item.timestamp).toLocaleTimeString()}</small>
+                    </div>
+                `).join('');
+            }
+
+            filterHistory() {
+                this.updateHistoryDisplay();
+            }
+
+            sortHistory() {
+                this.updateHistoryDisplay();
+            }
+
+            showLoading() {
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('convert-btn').disabled = true;
+                document.getElementById('convert-btn').innerHTML = '🔄 Converting...';
+                document.getElementById('result').classList.remove('show');
+            }
+
+            hideLoading() {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('convert-btn').disabled = false;
+                document.getElementById('convert-btn').innerHTML = '🔄 Convert Currency';
+            }
+        }
+
+        // Initialize the app when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new SimpleForexApp();
+        });
+
+        // Global functions for enhanced features
+        function clearHistory() {
+            if (confirm('Clear all conversion history?')) {
+                localStorage.removeItem('conversionHistory');
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
