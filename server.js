@@ -5,7 +5,7 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Allow requests from GitHub Pages
+// CORS setup for GitHub Pages
 app.use(cors({
     origin: ['https://davy-00.github.io', 'http://localhost:8080'],
     methods: ['GET', 'POST', 'OPTIONS']
@@ -14,7 +14,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static('.'));
 
-// Simple cache for exchange rates
+// Cache for exchange rates (keeps for 5 minutes)
 const cache = new Map();
 
 // Supported currencies
@@ -24,11 +24,12 @@ const currencies = {
     'CHF': 'Swiss Franc', 'CNY': 'Chinese Yuan', 'INR': 'Indian Rupee', 'KRW': 'South Korean Won'
 };
 
-// Currency conversion API
+// Currency conversion API endpoint
 app.post('/api/convert', async (req, res) => {
     try {
         const { from, to, amount } = req.body;
         
+        // Basic input validation
         if (!from || !to || !amount) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
@@ -45,16 +46,18 @@ app.post('/api/convert', async (req, res) => {
             return res.status(400).json({ error: 'Unsupported currency' });
         }
 
-        // Check cache
+        // Check if we have cached rates
         const cacheKey = `${fromCur}_rates`;
         let rates = cache.get(cacheKey);
         
         if (!rates) {
+            // Fetch fresh rates from API
             const response = await fetch(`https://api.exchangerate-api.com/v4/latest/${fromCur}`);
             const data = await response.json();
             rates = data.rates;
             cache.set(cacheKey, rates);
-            setTimeout(() => cache.delete(cacheKey), 5 * 60 * 1000); // 5 min cache
+            // Cache expires after 5 minutes
+            setTimeout(() => cache.delete(cacheKey), 5 * 60 * 1000);
         }
 
         const rate = rates[toCur];

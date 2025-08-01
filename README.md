@@ -1,20 +1,22 @@
-# Forex Exchange App - ALU Assignment
+# ALU Forex Exchange - Currency Converter
 
-This is my project for the ALU "Playing Around with APIs" assignment. It's a simple currency converter that uses real exchange rates.
+My project for the ALU "Playing Around with APIs" assignment. It's a forex exchange application that converts currencies using real-time exchange rates.
 
 ## What it does
 
-- Convert between different currencies
-- Shows current exchange rates  
-- Works on mobile and desktop
-- Simple and easy to use interface
+This web application lets you:
+- Convert between different currencies with live exchange rates
+- View conversion history with search and filter options
+- Use on both mobile and desktop devices
+- See real-time updates as you type
 
-## Tech Stack
+## Technologies Used
 
-- HTML, CSS, JavaScript (frontend)
-- Node.js + Express (backend API)
-- ExchangeRate API for currency data
-- Deployed on GitHub Pages + Render
+- **Frontend**: HTML5, CSS3, JavaScript
+- **Backend**: Node.js with Express
+- **API**: ExchangeRate-API for live currency data
+- **Deployment**: GitHub Pages (frontend) + Render.com (backend)
+- **Containerization**: Docker support
 
 ## Live Demo
 
@@ -84,13 +86,14 @@ docker run -p 8080:8080 forex-app
 ✅ **Load Balancing** - Multiple backend configuration with failover  
 ✅ **Data Persistence** - Local storage for conversion history  
 
-## About
+## About This Project
 
-This project demonstrates:
-- Working with REST APIs
-- Full-stack web development
-- Cloud deployment
-- Responsive web design
-- Error handling and validation
+This demonstrates my understanding of:
 
-Built for ALU Software Engineering program.
+- Working with REST APIs and handling responses
+- Full-stack web development (frontend + backend)
+- Cloud deployment and containerization
+- Responsive web design principles
+- Error handling and user experience
+
+Created for ALU Software Engineering program as part of the API integration assignment.
