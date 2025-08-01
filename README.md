@@ -23,6 +23,10 @@ This web application lets you:
 - Frontend: https://davy-00.github.io/alu_forex_exchange/
 - Backend API: https://alu-forex-exchange.onrender.com
 
+## Demo Video
+
+Watch the application in action: [Forex Exchange Demo](https://youtu.be/SC1F8P044DE)
+
 ## How to Run Locally
 
 ### Option 1: Direct Node.js
